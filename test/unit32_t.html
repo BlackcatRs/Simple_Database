@@ -1,0 +1,55 @@
+<div class="answercell post-layout--right">
+
+    <div class="s-prose js-post-body" itemprop="text">
+<p><code>uint32_t</code> is a numeric type that guarantees 32 bits, the value is unsigned,
+meaning that the range of values goes from 0 to 2<sup>32</sup> - 1.</p>
+
+<p>This</p>
+
+<pre class="lang-c s-code-block hljs"><code><span class="hljs-keyword">uint32_t</span>* ptr;
+</code></pre>
+
+<p>declares a pointer of type <code>uint32_t*</code>, but the pointer is uninitialized, that
+is, the pointer does not point to anywhere in particular. Trying to access
+memory through that pointer will cause undefined behaviour and your program
+might crash.</p>
+
+<p>This</p>
+
+<pre class="lang-c s-code-block hljs"><code><span class="hljs-keyword">uint32_t</span> num;
+</code></pre>
+
+<p>is just a variable of type <code>uint32_t</code>.</p>
+
+<p>This</p>
+
+<pre class="lang-c s-code-block hljs"><code>*(<span class="hljs-keyword">uint32_t</span>*)(ptr + num);
+</code></pre>
+
+<p><code>ptr + num</code> returns you a new pointer. It is called pointer arithmetic, it's
+like regular arithmetic only that compiler takes the size of a types into
+consideration. Think of <code>ptr + num</code> as the memory address based on the original
+<code>ptr</code> pointer plus the number of bytes for <code>num</code> <code>uint32_t</code> objects.</p>
+
+<p>The <code>(uint32_t*) x</code> is a cast, this tells the compiler that it should treat the
+expression <code>x</code> as if it were a <code>uint32_t*</code>. In this case it's not even needed
+because <code>ptr + num</code> is already a <code>uint32_t*</code>.</p>
+
+<p>The <code>*</code> at the beginning is the dereferencing operator which is used to access
+the memory through a pointer. The whole expression is equivalent to</p>
+
+<pre class="lang-c s-code-block hljs"><code>ptr[num];
+</code></pre>
+
+<p>Now, because none of these variables is initialized, the result will be garbage.
+However if you initialize them like this:</p>
+
+<pre class="lang-c s-code-block hljs"><code><span class="hljs-keyword">uint32_t</span> arr[] = { <span class="hljs-number">1</span>, <span class="hljs-number">3</span>, <span class="hljs-number">5</span>, <span class="hljs-number">7</span>, <span class="hljs-number">9</span> };
+<span class="hljs-keyword">uint32_t</span> *ptr = arr;
+<span class="hljs-keyword">uint32_t</span> num = <span class="hljs-number">2</span>;
+
+<span class="hljs-built_in">printf</span>(<span class="hljs-string">"%u\n"</span>, *(ptr + num));
+</code></pre>
+
+<p>this would print 5, because <code>ptr[2]</code> is 5.</p>
+    </div>
