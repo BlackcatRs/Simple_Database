@@ -82,6 +82,7 @@ void deserialize_row(void *source, Row* destination) {
   memcpy(&(destination->email), source + EMAIL_OFFSET, EMAIL_SIZE);
 }
 
+// indicate where to write row in a page
 void* row_slot(Table* table, uint32_t row_num) {
   uint32_t page_num = row_num / ROWS_PER_PAGE;
   void *page = table->pages[page_num];
@@ -89,7 +90,7 @@ void* row_slot(Table* table, uint32_t row_num) {
      // Allocate memory only when we try to access page
      page = table->pages[page_num] = malloc(PAGE_SIZE); //4096 bytes
   }
-  uint32_t row_offset = row_num % ROWS_PER_PAGE;
+  uint32_t row_offset = row_num % ROWS_PER_PAGE; //page num
   uint32_t byte_offset = row_offset * ROW_SIZE;
   return page + byte_offset;
 }
@@ -162,7 +163,7 @@ ExecuteResult execute_insert(Statement* statement, Table* table) {
 
   // statement->row_to_insert contain data to insert
   Row* row_to_insert = &(statement->row_to_insert);
-// stop here and tring to understand why pointer arimetic
+
   serialize_row(row_to_insert, row_slot(table, table->num_rows));
   table->num_rows += 1;
 
@@ -188,6 +189,7 @@ ExecuteResult execute_statement(Statement* statement, Table *table) {
 }
 
 int main(int argc, char* argv[]) {
+  // table contain row_num and array of pointers
   Table* table = new_table();
   InputBuffer* input_buffer = new_input_buffer();
 
