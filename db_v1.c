@@ -2,11 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h> 
 
 // input_buffer
- typedef struct {
-   char* buffer;
- } InputBuffer;
+typedef struct {
+  char* buffer;
+  size_t buffer_length;
+  ssize_t input_length;
+} InputBuffer;
 
 typedef enum { EXECUTE_SUCCESS, EXECUTE_TABLE_FULL } ExecuteResult;
 
@@ -61,21 +64,25 @@ const uint32_t PAGE_SIZE = 4096;
 const uint32_t ROWS_PER_PAGE = PAGE_SIZE / ROW_SIZE;
 const uint32_t TABLE_MAX_ROWS = ROWS_PER_PAGE * TABLE_MAX_PAGES;
 
+// Table structure that points to pages of rows and keeps
+// track of how many rows there are
 typedef struct {
   uint32_t num_rows;
-  void* pages[TABLE_MAX_PAGES];
+  void* pages[TABLE_MAX_PAGES]; //char *names[3] = {"john", "steve", "job"}
 } Table;
 
 void print_row(Row* row) {
   printf("(%d, %s, %s)\n", row->id, row->username, row->email);
 }
 
+// copy data in serial order (struct to pages)
 void serialize_row(Row* source, void* destination) {
   memcpy(destination + ID_OFFSET, &(source->id), ID_SIZE);
   memcpy(destination + USERNAME_OFFSET, &(source->username), USERNAME_SIZE);
   memcpy(destination + EMAIL_OFFSET, &(source->email), EMAIL_SIZE);
 }
 
+// put back data to normal variable from serial order (pages to struct)
 void deserialize_row(void *source, Row* destination) {
   memcpy(&(destination->id), source + ID_OFFSET, ID_SIZE);
   memcpy(&(destination->username), source + USERNAME_OFFSET, USERNAME_SIZE);
@@ -113,8 +120,12 @@ void free_table(Table* table) {
 
 // buffer initializer
 InputBuffer* new_input_buffer() {
-  InputBuffer* input_buffer = malloc(sizeof(InputBuffer));
+  InputBuffer* input_buffer = (InputBuffer*)malloc(sizeof(InputBuffer));
   input_buffer->buffer = NULL;
+  input_buffer->buffer_length = 0;
+  input_buffer->input_length = 0;
+
+  return input_buffer;
 }
 
 void close_input_buffer(InputBuffer* input_buffer) {
@@ -187,6 +198,23 @@ ExecuteResult execute_statement(Statement* statement, Table *table) {
 	return execute_select(statement, table);
   }
 }
+
+void print_prompt() { printf("db > "); }
+
+void read_input(InputBuffer* input_buffer) {
+  ssize_t bytes_read =
+      getline(&(input_buffer->buffer), &(input_buffer->buffer_length), stdin);
+
+  if (bytes_read <= 0) {
+    printf("Error reading input\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // Ignore trailing newline
+  input_buffer->input_length = bytes_read - 1;
+  input_buffer->buffer[bytes_read - 1] = 0;
+}
+
 
 int main(int argc, char* argv[]) {
   // table contain row_num and array of pointers
