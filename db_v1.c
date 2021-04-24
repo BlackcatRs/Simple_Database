@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <stdbool.h> 
+#include <stdbool.h>
 
 // input_buffer
 typedef struct {
@@ -22,6 +22,8 @@ typedef enum {
 // .insert .select
 typedef enum {
   PREPARE_SUCCESS,
+  PREPARE_NEGATIVE_ID,
+  PREPARE_STRING_TOO_LONG,
   PREPARE_SYNTAX_ERROR,
   PREPARE_UNRECOGNIZED_STATEMENT
  } PrepareResult;
@@ -53,11 +55,11 @@ const uint32_t EMAIL_SIZE = size_of_attribute(Row, email); //255 bytes
 
 // oder in which to save row data
 const uint32_t ID_OFFSET = 0;
-const uint32_t USERNAME_OFFSET = ID_OFFSET + ID_SIZE; // 4 bytes
-// 4 + 32 = 36 bytes
-const uint32_t EMAIL_OFFSET = USERNAME_OFFSET + USERNAME_SIZE;
-// 4 + 32 + 255 = 291 bytes
-const uint32_t ROW_SIZE = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE;
+const uint32_t USERNAME_OFFSET = ID_OFFSET  ID_SIZE; // 4 bytes
+// 4  32 = 36 bytes
+const uint32_t EMAIL_OFFSET = USERNAME_OFFSET  USERNAME_SIZE;
+// 4  32  255 = 291 bytes
+const uint32_t ROW_SIZE = ID_SIZE  USERNAME_SIZE  EMAIL_SIZE;
 
 const uint32_t PAGE_SIZE = 4096;
 #define TABLE_MAX_PAGES 100
@@ -77,16 +79,16 @@ void print_row(Row* row) {
 
 // copy data in serial order (struct to pages)
 void serialize_row(Row* source, void* destination) {
-  memcpy(destination + ID_OFFSET, &(source->id), ID_SIZE);
-  memcpy(destination + USERNAME_OFFSET, &(source->username), USERNAME_SIZE);
-  memcpy(destination + EMAIL_OFFSET, &(source->email), EMAIL_SIZE);
+  memcpy(destination  ID_OFFSET, &(source->id), ID_SIZE);
+  memcpy(destination  USERNAME_OFFSET, &(source->username), USERNAME_SIZE);
+  memcpy(destination  EMAIL_OFFSET, &(source->email), EMAIL_SIZE);
 }
 
 // put back data to normal variable from serial order (pages to struct)
 void deserialize_row(void *source, Row* destination) {
-  memcpy(&(destination->id), source + ID_OFFSET, ID_SIZE);
-  memcpy(&(destination->username), source + USERNAME_OFFSET, USERNAME_SIZE);
-  memcpy(&(destination->email), source + EMAIL_OFFSET, EMAIL_SIZE);
+  memcpy(&(destination->id), source  ID_OFFSET, ID_SIZE);
+  memcpy(&(destination->username), source  USERNAME_OFFSET, USERNAME_SIZE);
+  memcpy(&(destination->email), source  EMAIL_OFFSET, EMAIL_SIZE);
 }
 
 // indicate where to write row in a page
@@ -99,20 +101,20 @@ void* row_slot(Table* table, uint32_t row_num) {
   }
   uint32_t row_offset = row_num % ROWS_PER_PAGE; //page num
   uint32_t byte_offset = row_offset * ROW_SIZE;
-  return page + byte_offset;
+  return page  byte_offset;
 }
 
 Table* new_table() {
   Table* table = malloc(sizeof(Table));
   table->num_rows = 0;
-  for (uint32_t i = 0; i < TABLE_MAX_PAGES; i++) {
+  for (uint32_t i = 0; i < TABLE_MAX_PAGES; i) {
      table->pages[i] = NULL;
   }
   return table;
 }
 
 void free_table(Table* table) {
-  for (int i = 0; table->pages[i]; i++) {
+  for (int i = 0; table->pages[i]; i) {
      free(table->pages[i]);
   }
   free(table);
@@ -147,16 +149,7 @@ MetaCommandResult do_meta_command(InputBuffer* input_buffer, Table *table) {
 PrepareResult prepare_statement(InputBuffer* input_buffer,
   Statement* statement) {
   if (strncmp(input_buffer->buffer, "insert", 6) == 0) {
-    statement->type = STATEMENT_INSERT;
-    int args_assigned = sscanf(
-      input_buffer->buffer, "insert %d %s %s", &(statement->row_to_insert.id),
-  	  statement->row_to_insert.username, statement->row_to_insert.email
-	  );
-
-    if (args_assigned < 3) {
-      return PREPARE_SYNTAX_ERROR;
-    }
-    return PREPARE_SUCCESS;
+    return prepare_insert(input_buffer, statement);
   }
 
   if (strcmp(input_buffer->buffer, "select") == 0) {
@@ -165,6 +158,37 @@ PrepareResult prepare_statement(InputBuffer* input_buffer,
   }
 
   return PREPARE_UNRECOGNIZED_STATEMENT;
+}
+
+PrepareResult prepare_insert(InputBuffer* input_buffer, Statement* statement) {
+  statement->type = STATEMENT_INSERT;
+
+  char* keyword = strtok(input_buffer->buffer, " ");
+  char* id_string = strtok(NULL, " ");
+  char* username = strtok(NULL, " ");
+  char* email = strtok(NULL, " ");
+
+  if (id_string == NULL || username == NULL || email == NULL) {
+    return PREPARE_SYNTAX_ERROR;
+  }
+
+  int id = atoi(id_string);
+  if (id < 0) {
+    return PREPARE_NEGATIVE_ID;
+  }
+
+  if (strlen(username) > COLUMN_USERNAME_SIZE) {
+    return PREPARE_STRING_TOO_LONG;
+  }
+  if (strlen(email) > COLUMN_EMAIL_SIZE) {
+    return PREPARE_STRING_TOO_LONG;
+  }
+
+  statement->row_to_insert.id = id;
+  strcpy(statement->row_to_insert.username, username);
+  strcpy(statement->row_to_insert.email, email);
+
+  return PREPARE_SUCCESS;
 }
 
 ExecuteResult execute_insert(Statement* statement, Table* table) {
@@ -176,14 +200,14 @@ ExecuteResult execute_insert(Statement* statement, Table* table) {
   Row* row_to_insert = &(statement->row_to_insert);
 
   serialize_row(row_to_insert, row_slot(table, table->num_rows));
-  table->num_rows += 1;
+  table->num_rows = 1;
 
   return EXECUTE_SUCCESS;
 }
 
 ExecuteResult execute_select(Statement* statement, Table* table) {
   Row row;
-  for (uint32_t i = 0; i < table->num_rows; i++) {
+  for (uint32_t i = 0; i < table->num_rows; i) {
      deserialize_row(row_slot(table, i), &row);
      print_row(&row);
   }
@@ -238,14 +262,20 @@ int main(int argc, char* argv[]) {
     Statement statement;
     switch (prepare_statement(input_buffer, &statement)) {
       case (PREPARE_SUCCESS):
-      break;
+        break;
+      case (PREPARE_NEGATIVE_ID):
+        printf("ID must be positive.\n");
+        continue;
+      case (PREPARE_STRING_TOO_LONG):
+        printf("String is too long.\n");
+        continue;
       case (PREPARE_SYNTAX_ERROR):
-      printf("Syntax error. Could not parse statement.\n");
-      continue;
+        printf("Syntax error. Could not parse statement.\n");
+        continue;
       case (PREPARE_UNRECOGNIZED_STATEMENT):
-      printf("Unrecognized keyword at start of '%s'.\n",
-      input_buffer->buffer);
-      continue;
+        printf("Unrecognized keyword at start of '%s'.\n",
+          input_buffer->buffer);
+        continue;
     }
 
     switch (execute_statement(&statement, table)) {
