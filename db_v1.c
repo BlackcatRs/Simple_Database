@@ -138,6 +138,7 @@ Pager* pager_open(const char* filename) {
     exit(EXIT_FAILURE);
   }
 
+  // try to understand lseek, read and write fonction
   off_t file_length = lseek(fd, 0, SEEK_END);
 
   Pager* pager = malloc(sizeof(Pager));
