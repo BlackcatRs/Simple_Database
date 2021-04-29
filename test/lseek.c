@@ -1,56 +1,36 @@
-// C program to read nth byte of a file and
-// copy it to another file using lseek
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
+// Input and output are normally sequential: each read or write takes place
+// at a position in the file right after the previous one. When necessary,
+// however, a file can be read or written in any arbitrary order.
+// The system call lseek provides a way to move around in a file
+// without reading or writing any data.
+
+
 #include <fcntl.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdio.h>      // printf()
+#include <stdlib.h>     // exit()
 
-void func(char arr[], int n)
-{
-	// Open the file for READ only.
-	int f_write = open("start.txt", O_RDONLY);
 
-	// Open the file for WRITE and READ only.
-	int f_read = open("end.txt", O_WRONLY);
+int main() {
+    // file file descriptor
+    int fd = open("words.txt", O_RDONLY);
+    if (fd < 0) exit(1); // error checking
 
-	int count = 0;
+    char word[4]; // read data
 
-	while (read(f_write, arr, 1))
-	{
+    // move the curser 4 bytes from current position
+    off_t new_pos = lseek(fd, 4, SEEK_SET);
+    read(fd, word, 3);
+    word[4] = 0; // \0 of an array
 
-		// to write the 1st byte of the input file in
-		// the output file
-		if (count < n)
-		{
-			// SEEK_CUR specifies that
-			// the offset provided is relative to the
-			// current file position
-			lseek (f_write, n, SEEK_CUR);
-			write (f_read, arr, 1);
-			count = n;
-		}
+    printf("Word @ pos %d: %s\n", new_pos, word);
 
-		// After the nth byte (now taking the alternate
-		// nth byte)
-		// else
-		// {
-		// 	count = (2*n);
-		// 	lseek(f_write, count, SEEK_CUR);
-		// 	write(f_read, arr, 1);
-		// }
-	}
-	close(f_write);
-	close(f_read);
-}
+    new_pos = lseek(fd, 1, SEEK_CUR); // Skip new line characters
 
-// Driver code
-int main()
-{
-	char arr[100];
-	int n;
-	n = 5;
+    read(fd, word, 3);
+    printf("Word @ pos %d: %s\n", new_pos, word);
 
-	// Calling for the function
-	func(arr, n);
-	return 0;
+    close(fd);
+
 }
