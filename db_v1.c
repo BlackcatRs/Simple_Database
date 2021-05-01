@@ -184,7 +184,6 @@ Table* db_open(const char* filename) {
   return table;
 }
 
-
 // buffer initializer
 InputBuffer* new_input_buffer() {
   InputBuffer* input_buffer = (InputBuffer*)malloc(sizeof(InputBuffer));
@@ -265,11 +264,9 @@ void db_close(Table* table) {
   free(table);
 }
 
-
 // .exit
 MetaCommandResult do_meta_command(InputBuffer* input_buffer, Table* table) {
   if (strcmp(input_buffer->buffer, ".exit") == 0) {
-    db_close(table);
     close_input_buffer(input_buffer);
     db_close(table);
     exit(EXIT_SUCCESS);
@@ -324,7 +321,6 @@ PrepareResult prepare_statement(InputBuffer* input_buffer,
   return PREPARE_UNRECOGNIZED_STATEMENT;
 }
 
-
 ExecuteResult execute_insert(Statement* statement, Table* table) {
   if (table->num_rows >= TABLE_MAX_ROWS) {
      return EXECUTE_TABLE_FULL;
@@ -334,14 +330,14 @@ ExecuteResult execute_insert(Statement* statement, Table* table) {
   Row* row_to_insert = &(statement->row_to_insert);
 
   serialize_row(row_to_insert, row_slot(table, table->num_rows));
-  table->num_rows = 1;
+  table->num_rows += 1;
 
   return EXECUTE_SUCCESS;
 }
 
 ExecuteResult execute_select(Statement* statement, Table* table) {
   Row row;
-  for (uint32_t i = 0; i < table->num_rows; i) {
+  for (uint32_t i = 0; i < table->num_rows; i++) {
      deserialize_row(row_slot(table, i), &row);
      print_row(&row);
   }
@@ -389,6 +385,7 @@ int main(int argc, char* argv[]) {
     print_prompt();
     read_input(input_buffer);
 
+    // meta command
     if (input_buffer->buffer[0] == '.') {
       switch (do_meta_command(input_buffer, table)) {
         case (META_COMMAND_SUCCESS):
