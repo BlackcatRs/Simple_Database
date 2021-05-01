@@ -6,6 +6,9 @@
   // strlen(ptr_userdata->src));
 // memcpy(ptr_userdata->dest, ptr_userdata->src, strlen(ptr_userdata->src));
 
+ // memcpy() copy the entire byte in a buffer into the file,
+ // including any bytes (random junk)after the end of the string.
+
 #include <stdio.h>
 // use by strcpy(), memcpy(), strlen()
 #include <string.h>
