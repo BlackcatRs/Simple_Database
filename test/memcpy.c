@@ -1,5 +1,5 @@
 // void *memcpy(void *dest, const void * src, size_t n)
-// trying to unserstand why use & in front of a poiter destination->username
+// trying to unserstand why use & in front of a pointer destination->username
 // give us char **. this works beacause expect arg is void*, so we can
 // use
 // memcpy(&(ptr_userdata->dest), &(ptr_userdata->src),
