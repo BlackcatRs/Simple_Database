@@ -1,0 +1,21 @@
+data need to be store in a data structure.
+no data structure are perfect, need to choose right one for your need.
+
+the way we measure how good is data structure is for doing specific things
+such as retriving data, insert data, search data, sorting data is called
+Big o notation.
+(Big o help to find data structure performence)
+
+data structure :
+
+1 - linked lists
+2 - array
+3 - hash table (dic in python) - keys of dic go to a hashing function and
+    that return a mem location of value of that key (mem locations are not
+    in order)
+4 - stack - last in first out (use by algorithm dfs)
+5 - queue - fitst in first out (use by algorithm bfs)
+6 - graphs - nodes poits to another points (here pointer are called "edges")
+7 - trees
+  7.1 - binary search tree (good for search)
+  7.2 - self-balance tree
