@@ -59,7 +59,7 @@ const uint32_t EMAIL_SIZE = size_of_attribute(Row, email); //255 bytes
 // oder in which to save row data
 const uint32_t ID_OFFSET = 0;
 const uint32_t USERNAME_OFFSET = ID_OFFSET + ID_SIZE; // 4 bytes
-// 4  32 = 36 bytes
+// 4 + 32 = 36 bytes
 const uint32_t EMAIL_OFFSET = USERNAME_OFFSET + USERNAME_SIZE;
 // 4 + 32 + 255 = 291 bytes
 const uint32_t ROW_SIZE = ID_SIZE + USERNAME_SIZE + EMAIL_SIZE;
@@ -88,6 +88,92 @@ typedef struct {
   uint32_t row_num;
   bool end_of_table; // Indicates a position one past the last element
 } Cursor;
+
+
+/*
+ * Common Node Header Layout (size is 5 bytes)
+ */
+const uint32_t NODE_TYPE_SIZE = sizeof(uint8_t); // 1 bytes
+const uint32_t NODE_TYPE_OFFSET = 0;
+const uint32_t IS_ROOT_SIZE = sizeof(uint8_t); // 1 bytes
+const uint32_t IS_ROOT_OFFSET = NODE_TYPE_SIZE;
+const uint32_t PARENT_POINTER_SIZE = sizeof(uint32_t); // 3 bytes
+// 1 + 1 = 2 bytes
+const uint32_t PARENT_POINTER_OFFSET = IS_ROOT_OFFSET + IS_ROOT_SIZE;
+const uint8_t COMMON_NODE_HEADER_SIZE =
+    NODE_TYPE_SIZE + IS_ROOT_SIZE + PARENT_POINTER_SIZE; // 5 bytes
+
+/*
+ * Leaf Node Header Layout (size is 8 bytes)
+ */
+const uint32_t LEAF_NODE_NUM_CELLS_SIZE = sizeof(uint32_t); // 3 bytes
+const uint32_t LEAF_NODE_NUM_CELLS_OFFSET = COMMON_NODE_HEADER_SIZE; // 5 bytes
+const uint32_t LEAF_NODE_HEADER_SIZE =
+    COMMON_NODE_HEADER_SIZE + LEAF_NODE_NUM_CELLS_SIZE; // 8 bytes
+
+/*
+ * Leaf Node Body Layout
+ */
+const uint32_t LEAF_NODE_KEY_SIZE = sizeof(uint32_t); // 3 bytes
+const uint32_t LEAF_NODE_KEY_OFFSET = 0;
+const uint32_t LEAF_NODE_VALUE_SIZE = ROW_SIZE; // 291 bytes
+const uint32_t LEAF_NODE_VALUE_OFFSET =
+    LEAF_NODE_KEY_OFFSET + LEAF_NODE_KEY_SIZE; // 0 + 3 = 3 bytes
+// 3 + 291 = 294 bytes
+const uint32_t LEAF_NODE_CELL_SIZE = LEAF_NODE_KEY_SIZE + LEAF_NODE_VALUE_SIZE;
+// 4096 - 8 = 4088
+const uint32_t LEAF_NODE_SPACE_FOR_CELLS = PAGE_SIZE - LEAF_NODE_HEADER_SIZE;
+// 4088 / 294 = 13 Cells per Node
+const uint32_t LEAF_NODE_MAX_CELLS =
+    LEAF_NODE_SPACE_FOR_CELLS / LEAF_NODE_CELL_SIZE;
+
+
+/*
+  Accessing Leaf Node Fields
+*/
+
+// pointer to the field "num_cells"
+uint32_t* leaf_node_num_cells(void* node) {
+  return node + LEAF_NODE_NUM_CELLS_OFFSET;
+}
+
+// pointer to specified (cell_num) cell (key + value)
+void* leaf_node_cell(void* node, uint32_t cell_num) {
+  return node + LEAF_NODE_HEADER_SIZE + cell_num * LEAF_NODE_CELL_SIZE;
+}
+
+uint32_t* leaf_node_key(void* node, uint32_t cell_num) {
+  return leaf_node_cell(node, cell_num);
+}
+
+// pointer to specified (cell_num) cell value
+void* leaf_node_value(void* node, uint32_t cell_num) {
+  return leaf_node_cell(node, cell_num) + LEAF_NODE_KEY_SIZE;
+}
+
+// field num_cells = 0
+void initialize_leaf_node(void* node) { *leaf_node_num_cells(node) = 0; }
+
+// not now
+
+// void print_constants() {
+//   printf("ROW_SIZE: %d\n", ROW_SIZE);
+//   printf("COMMON_NODE_HEADER_SIZE: %d\n", COMMON_NODE_HEADER_SIZE);
+//   printf("LEAF_NODE_HEADER_SIZE: %d\n", LEAF_NODE_HEADER_SIZE);
+//   // LEAF_NODE_CELL_SIZE = key + value
+//   printf("LEAF_NODE_CELL_SIZE: %d\n", LEAF_NODE_CELL_SIZE);
+//   printf("LEAF_NODE_SPACE_FOR_CELLS: %d\n", LEAF_NODE_SPACE_FOR_CELLS);
+//   printf("LEAF_NODE_MAX_CELLS: %d\n", LEAF_NODE_MAX_CELLS);
+// }
+//
+// void print_leaf_node(void* node) {
+//   uint32_t num_cells = *leaf_node_num_cells(node);
+//   printf("leaf (size %d)\n", num_cells);
+//   for (uint32_t i = 0; i < num_cells; i++) {
+//     uint32_t key = *leaf_node_key(node, i);
+//     printf("  - %d : %d\n", i, key);
+//   }
+// }
 
 
 void print_row(Row* row) {
