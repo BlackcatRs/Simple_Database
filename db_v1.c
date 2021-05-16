@@ -154,7 +154,7 @@ void* leaf_node_value(void* node, uint32_t cell_num) {
 // field num_cells = 0
 void initialize_leaf_node(void* node) { *leaf_node_num_cells(node) = 0; }
 
-// not now
+// stop at the beging of Changes to Pager and Table Objects
 
 // void print_constants() {
 //   printf("ROW_SIZE: %d\n", ROW_SIZE);
