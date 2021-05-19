@@ -72,6 +72,7 @@ const uint32_t TABLE_MAX_ROWS = ROWS_PER_PAGE * TABLE_MAX_PAGES;
 typedef struct {
   int file_descriptor;
   uint32_t file_length;
+  uint32_t num_pages;
   void* pages[TABLE_MAX_PAGES]; //char *names[3] = {"john", "steve", "job"}
 } Pager;
 
@@ -80,7 +81,7 @@ typedef struct {
 // track of how many rows there are
 typedef struct {
   Pager* pager;
-  uint32_t num_rows;
+  uint32_t root_page_num;
 } Table;
 
 typedef struct {
@@ -154,27 +155,6 @@ void* leaf_node_value(void* node, uint32_t cell_num) {
 // field num_cells = 0
 void initialize_leaf_node(void* node) { *leaf_node_num_cells(node) = 0; }
 
-// stop at the beging of Changes to Pager and Table Objects
-
-// void print_constants() {
-//   printf("ROW_SIZE: %d\n", ROW_SIZE);
-//   printf("COMMON_NODE_HEADER_SIZE: %d\n", COMMON_NODE_HEADER_SIZE);
-//   printf("LEAF_NODE_HEADER_SIZE: %d\n", LEAF_NODE_HEADER_SIZE);
-//   // LEAF_NODE_CELL_SIZE = key + value
-//   printf("LEAF_NODE_CELL_SIZE: %d\n", LEAF_NODE_CELL_SIZE);
-//   printf("LEAF_NODE_SPACE_FOR_CELLS: %d\n", LEAF_NODE_SPACE_FOR_CELLS);
-//   printf("LEAF_NODE_MAX_CELLS: %d\n", LEAF_NODE_MAX_CELLS);
-// }
-//
-// void print_leaf_node(void* node) {
-//   uint32_t num_cells = *leaf_node_num_cells(node);
-//   printf("leaf (size %d)\n", num_cells);
-//   for (uint32_t i = 0; i < num_cells; i++) {
-//     uint32_t key = *leaf_node_key(node, i);
-//     printf("  - %d : %d\n", i, key);
-//   }
-// }
-
 
 void print_row(Row* row) {
   printf("(%d, %s, %s)\n", row->id, row->username, row->email);
@@ -224,6 +204,11 @@ void* get_page(Pager* pager, uint32_t page_num) {
 
     // loads 4096 bytes of data to mem
     pager->pages[page_num] = page;
+
+    if (page_num >= pager->num_pages) {
+      pager->num_pages = page_num + 1;
+    }
+
   }
 
   return pager->pages[page_num];
