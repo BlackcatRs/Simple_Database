@@ -14,7 +14,13 @@ typedef struct {
   ssize_t input_length;
 } InputBuffer;
 
-typedef enum { EXECUTE_SUCCESS, EXECUTE_TABLE_FULL } ExecuteResult;
+// typedef enum { EXECUTE_SUCCESS, EXECUTE_TABLE_FULL } ExecuteResult;
+typedef enum {
+  EXECUTE_SUCCESS,
+  EXECUTE_DUPLICATE_KEY,
+  EXECUTE_TABLE_FULL
+} ExecuteResult;
+
 
 // .command
 typedef enum {
@@ -91,6 +97,12 @@ typedef struct {
   bool end_of_table; // Indicates a position one past the last element
 } Cursor;
 
+void print_row(Row* row) {
+  printf("(%d, %s, %s)\n", row->id, row->username, row->email);
+}
+
+typedef enum { NODE_INTERNAL, NODE_LEAF } NodeType;
+
 
 /*
  * Common Node Header Layout (size is 5 bytes)
@@ -129,6 +141,15 @@ const uint32_t LEAF_NODE_SPACE_FOR_CELLS = PAGE_SIZE - LEAF_NODE_HEADER_SIZE;
 const uint32_t LEAF_NODE_MAX_CELLS =
     LEAF_NODE_SPACE_FOR_CELLS / LEAF_NODE_CELL_SIZE;
 
+NodeType get_node_type(void* node) {
+  uint8_t value = *((uint8_t*)(node + NODE_TYPE_OFFSET));
+  return (NodeType)value;
+}
+
+void set_node_type(void* node, NodeType type) {
+  uint8_t value = type;
+  *((uint8_t*)(node + NODE_TYPE_OFFSET)) = value;
+}
 
 /*
   Accessing Leaf Node Fields
@@ -160,38 +181,6 @@ void print_constants() {
   printf("LEAF_NODE_CELL_SIZE: %d\n", LEAF_NODE_CELL_SIZE);
   printf("LEAF_NODE_SPACE_FOR_CELLS: %d\n", LEAF_NODE_SPACE_FOR_CELLS);
   printf("LEAF_NODE_MAX_CELLS: %d\n", LEAF_NODE_MAX_CELLS);
-}
-
-void print_leaf_node(void* node) {
-  uint32_t num_cells = *leaf_node_num_cells(node);
-  printf("leaf (size %d)\n", num_cells);
-  for (uint32_t i = 0; i < num_cells; i++) {
-    uint32_t key = *leaf_node_key(node, i);
-    printf("  - %d : %d\n", i, key);
-  }
-}
-
-
-// field num_cells = 0
-void initialize_leaf_node(void* node) { *leaf_node_num_cells(node) = 0; }
-
-
-void print_row(Row* row) {
-  printf("(%d, %s, %s)\n", row->id, row->username, row->email);
-}
-
-// copy data in serial order (struct to pages)
-void serialize_row(Row* source, void* destination) {
-  memcpy(destination + ID_OFFSET, &(source->id), ID_SIZE);
-  strncpy(destination + USERNAME_OFFSET, source->username, USERNAME_SIZE);
-  strncpy(destination + EMAIL_OFFSET, source->email, EMAIL_SIZE);
-}
-
-// put back data to normal variable from serial order (pages to struct)
-void deserialize_row(void *source, Row* destination) {
-  memcpy(&(destination->id), source + ID_OFFSET, ID_SIZE);
-  memcpy(&(destination->username), source + USERNAME_OFFSET, USERNAME_SIZE);
-  memcpy(&(destination->email), source + EMAIL_OFFSET, EMAIL_SIZE);
 }
 
 // get specific page from file
@@ -233,6 +222,37 @@ void* get_page(Pager* pager, uint32_t page_num) {
 
   return pager->pages[page_num];
 }
+
+void print_leaf_node(void* node) {
+  uint32_t num_cells = *leaf_node_num_cells(node);
+  printf("leaf (size %d)\n", num_cells);
+  for (uint32_t i = 0; i < num_cells; i++) {
+    uint32_t key = *leaf_node_key(node, i);
+    printf("  - %d : %d\n", i, key);
+  }
+}
+
+// field num_cells = 0 and node type = leaf
+void initialize_leaf_node(void* node) {
+  set_node_type(node, NODE_LEAF);
+  *leaf_node_num_cells(node) = 0;
+}
+
+// copy data in serial order (struct to pages)
+void serialize_row(Row* source, void* destination) {
+  memcpy(destination + ID_OFFSET, &(source->id), ID_SIZE);
+  strncpy(destination + USERNAME_OFFSET, source->username, USERNAME_SIZE);
+  strncpy(destination + EMAIL_OFFSET, source->email, EMAIL_SIZE);
+}
+
+// put back data to normal variable from serial order (pages to struct)
+void deserialize_row(void *source, Row* destination) {
+  memcpy(&(destination->id), source + ID_OFFSET, ID_SIZE);
+  memcpy(&(destination->username), source + USERNAME_OFFSET, USERNAME_SIZE);
+  memcpy(&(destination->email), source + EMAIL_OFFSET, EMAIL_SIZE);
+}
+
+
 
 // initialize the cursor and point at the begining
 Cursor* table_start(Table* table) {
@@ -276,6 +296,7 @@ Cursor* leaf_node_find(Table* table, uint32_t page_num, uint32_t key) {
   cursor->cell_num = min_index;
   return cursor;
 }
+
 
 
 /*
@@ -635,11 +656,14 @@ int main(int argc, char* argv[]) {
 
     switch (execute_statement(&statement, table)) {
       case (EXECUTE_SUCCESS):
-      printf("Executed.\n");
-      break;
+        printf("Executed.\n");
+        break;
+      case (EXECUTE_DUPLICATE_KEY):
+        printf("Error: Duplicate key.\n");
+        break;
       case (EXECUTE_TABLE_FULL):
-      printf("Error: Table full.\n");
-      break;
+        printf("Error: Table full.\n");
+        break;
     }
 
   }
