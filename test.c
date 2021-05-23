@@ -1,16 +1,28 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <fcntl.h>
-// #include <sys/types.h>
+#include <stdint.h>
 
+#include <stdio.h>
 
 int main() {
-  char arr[100];
 
-  // file descriptor
-  int f_write = open("start.txt", O_RDONLY);
-  // copy data from file to an array
-  read(f_write, arr, 1);
+   double sum = 5;
+   int count = 2;
+   double mean;
 
-  return 0;
+   mean =  sum / count;
+   printf("Value of mean : %f\n", mean );
 }
+
+
+/*
+
+get root page from struct table
+get the right child from given right chid page num
+left child is empty page/node
+
+copy root content to left empty child
+
+
+
+*/
