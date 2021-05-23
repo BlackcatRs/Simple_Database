@@ -140,6 +140,11 @@ const uint32_t LEAF_NODE_SPACE_FOR_CELLS = PAGE_SIZE - LEAF_NODE_HEADER_SIZE;
 // 4088 / 294 = 13 Cells per Node
 const uint32_t LEAF_NODE_MAX_CELLS =
     LEAF_NODE_SPACE_FOR_CELLS / LEAF_NODE_CELL_SIZE;
+// 13+1 / 2 = 7
+const uint32_t LEAF_NODE_RIGHT_SPLIT_COUNT = (LEAF_NODE_MAX_CELLS + 1) / 2;
+// (13+1) - 7 = 7
+const uint32_t LEAF_NODE_LEFT_SPLIT_COUNT =
+    (LEAF_NODE_MAX_CELLS + 1) - LEAF_NODE_RIGHT_SPLIT_COUNT;
 
 NodeType get_node_type(void* node) {
   uint8_t value = *((uint8_t*)(node + NODE_TYPE_OFFSET));
@@ -514,6 +519,26 @@ PrepareResult prepare_statement(InputBuffer* input_buffer,
   return PREPARE_UNRECOGNIZED_STATEMENT;
 }
 
+/*
+Until we start recycling free pages, new pages will always
+go onto the end of the database file
+*/
+uint32_t get_unused_page_num(Pager* pager) { return pager->num_pages; }
+
+void create_new_root(Table* table, uint32_t right_child_page_num) {
+  /*
+  Handle splitting the root.
+  Old root copied to new page, becomes left child.
+  Address of right child passed in.
+  Re-initialize root page to contain the new root node.
+  New root node points to two children.
+  */
+
+  void* root = get_page(table->pager, table->root_page_num);
+  void* right_child = get_page(table->pager, right_child_page_num);
+  uint32_t left_child_page_num = get_unused_page_num(table->pager);
+  void* left_child = get_page(table->pager, left_child_page_num);
+
 void leaf_node_split_and_insert(Cursor* cursor, uint32_t key, Row* value) {
   /*
   Create a new node and move half the cells over.
@@ -539,6 +564,7 @@ void leaf_node_split_and_insert(Cursor* cursor, uint32_t key, Row* value) {
       destination_node = old_node;
     }
     uint32_t index_within_node = i % LEAF_NODE_LEFT_SPLIT_COUNT;
+    // pointer to specified (cell_num) cell (key + value)
     void* destination = leaf_node_cell(destination_node, index_within_node);
 
     if (i == cursor->cell_num) {
