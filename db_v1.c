@@ -118,6 +118,33 @@ const uint8_t COMMON_NODE_HEADER_SIZE =
     NODE_TYPE_SIZE + IS_ROOT_SIZE + PARENT_POINTER_SIZE; // 5 bytes
 
 /*
+ * Internal Node Header Layout
+ */
+const uint32_t INTERNAL_NODE_NUM_KEYS_SIZE = sizeof(uint32_t); // 4 bytes
+// 5 bytes
+const uint32_t INTERNAL_NODE_NUM_KEYS_OFFSET = COMMON_NODE_HEADER_SIZE;
+// 4 bytes
+const uint32_t INTERNAL_NODE_RIGHT_CHILD_SIZE = sizeof(uint32_t);
+// 9 bytes
+const uint32_t INTERNAL_NODE_RIGHT_CHILD_OFFSET =
+    INTERNAL_NODE_NUM_KEYS_OFFSET + INTERNAL_NODE_NUM_KEYS_SIZE;
+// 5 + 4 + 4 = 13 bytes
+const uint32_t INTERNAL_NODE_HEADER_SIZE = COMMON_NODE_HEADER_SIZE +
+                                           INTERNAL_NODE_NUM_KEYS_SIZE +
+                                           INTERNAL_NODE_RIGHT_CHILD_SIZE;
+
+/*
+ * Internal Node Body Layout
+ */
+const uint32_t INTERNAL_NODE_KEY_SIZE = sizeof(uint32_t);
+const uint32_t INTERNAL_NODE_CHILD_SIZE = sizeof(uint32_t);
+// 6 bytes
+const uint32_t INTERNAL_NODE_CELL_SIZE =
+    INTERNAL_NODE_CHILD_SIZE + INTERNAL_NODE_KEY_SIZE;
+
+
+
+/*
  * Leaf Node Header Layout (size is 8 bytes)
  */
 const uint32_t LEAF_NODE_NUM_CELLS_SIZE = sizeof(uint32_t); // 3 bytes
@@ -552,6 +579,7 @@ void create_new_root(Table* table, uint32_t right_child_page_num) {
   *internal_node_key(root, 0) = left_child_max_key;
   *internal_node_right_child(root) = right_child_page_num;
 }
+
 
 /*
   spilt node in left and right node
