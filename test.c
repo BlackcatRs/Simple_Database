@@ -5,8 +5,7 @@
 #include <stdio.h>
 
 int main() {
-  int nb = 5;
-  printf("%d\n", nb-6);
+  printf("%ld\n", sizeof(uint32_t));
 }
 
 
