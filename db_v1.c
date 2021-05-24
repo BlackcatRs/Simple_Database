@@ -553,7 +553,16 @@ void create_new_root(Table* table, uint32_t right_child_page_num) {
   *internal_node_right_child(root) = right_child_page_num;
 }
 
+/*
+  spilt node in left and right node
+  max keys per node is 6
+  old node [ 2  3  5  6  7  9 ]
 
+  after this fonction
+  old node [ newKey  2  3  5 ] - total keys in this node is 4
+  new node [ 6  7  9 ] - total keys in this node is 3
+
+*/
 void leaf_node_split_and_insert(Cursor* cursor, uint32_t key, Row* value) {
   /*
   Create a new node and move half the cells over.
