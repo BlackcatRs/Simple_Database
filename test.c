@@ -30,4 +30,12 @@ want to add 11
         [ 5 ]
 [ 2  3 ]      [ 6  7  9 ]
 
+3 keys and 4 child
+[ key0-child0  key1-child1  key3-child1 ]
+
+
+
+
+
+
 */
