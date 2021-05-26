@@ -2,10 +2,23 @@
 #include <unistd.h>
 #include <stdint.h>
 
-#include <stdio.h>
+void recursion(int answer) {
+  switch (answer) {
+    case 0:
+      printf("case 0\n");
+      break;
+    case 1:
+      for (size_t i = 0; i < 4; i++) {
+        recursion(0);
+        printf("%ld\n", i);
+      }
+
+  }
+}
+
 
 int main() {
-  printf("%ld\n", sizeof(uint32_t));
+  recursion(1);
 }
 
 
