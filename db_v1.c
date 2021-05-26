@@ -322,7 +322,7 @@ void print_tree(Pager* pager, uint32_t page_num, uint32_t indentation_level) {
       indent(indentation_level);
       printf("- leaf (size %d)\n", num_keys);
       for (uint32_t i = 0; i < num_keys; i++) {
-        indent(indentation_level + 1);
+        indent(indentation_level + 1); //add some space at beging
         printf("- %d\n", *leaf_node_key(node, i));
       }
       break;
@@ -331,7 +331,6 @@ void print_tree(Pager* pager, uint32_t page_num, uint32_t indentation_level) {
       indent(indentation_level);
       printf("- internal (size %d)\n", num_keys);
       for (uint32_t i = 0; i < num_keys; i++) {
-        // stop here, trying to understand fonction call it self
         child = *internal_node_child(node, i);
         print_tree(pager, child, indentation_level + 1);
 
@@ -579,7 +578,7 @@ MetaCommandResult do_meta_command(InputBuffer* input_buffer, Table* table) {
     exit(EXIT_SUCCESS);
   } else if (strcmp(input_buffer->buffer, ".btree") == 0) {
     printf("Tree:\n");
-    print_leaf_node(get_page(table->pager, 0));
+    print_tree(table->pager, 0, 0);
     return META_COMMAND_SUCCESS;
   } else if (strcmp(input_buffer->buffer, ".constants") == 0) {
     printf("Constants:\n");
