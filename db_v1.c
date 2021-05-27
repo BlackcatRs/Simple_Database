@@ -118,7 +118,7 @@ const uint8_t COMMON_NODE_HEADER_SIZE =
     NODE_TYPE_SIZE + IS_ROOT_SIZE + PARENT_POINTER_SIZE; // 5 bytes
 
 /*
- * Internal Node Header Layout
+ * Internal Node Header Layout (13 bytes)
  */
 const uint32_t INTERNAL_NODE_NUM_KEYS_SIZE = sizeof(uint32_t); // 4 bytes
 // 5 bytes
@@ -219,8 +219,27 @@ uint32_t* internal_node_child(void* node, uint32_t child_num) {
   }
 }
 
+// pointer to the field "num_cells"
+uint32_t* leaf_node_num_cells(void* node) {
+  return node + LEAF_NODE_NUM_CELLS_OFFSET;
+}
+
+// pointer to specified (cell_num) cell (key + value)
+void* leaf_node_cell(void* node, uint32_t cell_num) {
+  return node + LEAF_NODE_HEADER_SIZE + cell_num * LEAF_NODE_CELL_SIZE;
+}
+
 uint32_t* internal_node_key(void* node, uint32_t key_num) {
   return internal_node_cell(node, key_num) + INTERNAL_NODE_CHILD_SIZE;
+}
+
+uint32_t* leaf_node_key(void* node, uint32_t cell_num) {
+  return leaf_node_cell(node, cell_num);
+}
+
+// pointer to specified (cell_num) cell value
+void* leaf_node_value(void* node, uint32_t cell_num) {
+  return leaf_node_cell(node, cell_num) + LEAF_NODE_KEY_SIZE;
 }
 
 // get the last key in a node
@@ -236,25 +255,6 @@ uint32_t get_node_max_key(void* node) {
 /*
   Accessing Leaf Node Fields
 */
-
-// pointer to the field "num_cells"
-uint32_t* leaf_node_num_cells(void* node) {
-  return node + LEAF_NODE_NUM_CELLS_OFFSET;
-}
-
-// pointer to specified (cell_num) cell (key + value)
-void* leaf_node_cell(void* node, uint32_t cell_num) {
-  return node + LEAF_NODE_HEADER_SIZE + cell_num * LEAF_NODE_CELL_SIZE;
-}
-
-uint32_t* leaf_node_key(void* node, uint32_t cell_num) {
-  return leaf_node_cell(node, cell_num);
-}
-
-// pointer to specified (cell_num) cell value
-void* leaf_node_value(void* node, uint32_t cell_num) {
-  return leaf_node_cell(node, cell_num) + LEAF_NODE_KEY_SIZE;
-}
 
 void print_constants() {
   printf("ROW_SIZE: %d\n", ROW_SIZE);
@@ -343,7 +343,6 @@ void print_tree(Pager* pager, uint32_t page_num, uint32_t indentation_level) {
   }
 }
 
-
 // field num_cells = 0 and node type = leaf
 void initialize_leaf_node(void* node) {
   set_node_type(node, NODE_LEAF);
@@ -356,7 +355,6 @@ void initialize_internal_node(void* node) {
   set_node_root(node, false);
   *internal_node_num_keys(node) = 0;
 }
-
 
 // copy data in serial order (struct to pages)
 void serialize_row(Row* source, void* destination) {
