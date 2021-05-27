@@ -4,6 +4,14 @@
 // The system call lseek provides a way to move around in a file
 // without reading or writing any data.
 
+/*
+SEEK_SET
+    La tête est placée à offset octets depuis le début du fichier.
+SEEK_CUR
+    La tête de lecture/écriture est avancée de offset octets. 
+SEEK_END
+    La tête est placée à la fin du fichier plus offset octets.
+*/
 
 #include <fcntl.h>
 #include <sys/types.h>
