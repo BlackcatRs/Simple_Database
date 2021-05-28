@@ -371,20 +371,16 @@ void deserialize_row(void *source, Row* destination) {
 }
 
 
-
-// initialize the cursor and point at the begining
 Cursor* table_start(Table* table) {
-  Cursor* cursor = malloc(sizeof(Cursor));
-  cursor->table = table;
-  cursor->page_num = table->root_page_num;
-  cursor->cell_num = 0;
+  Cursor* cursor =  table_find(table, 0);
 
-  void* root_node = get_page(table->pager, table->root_page_num);
-  uint32_t num_cells = *leaf_node_num_cells(root_node);
+  void* node = get_page(table->pager, cursor->page_num);
+  uint32_t num_cells = *leaf_node_num_cells(node);
   cursor->end_of_table = (num_cells == 0);
 
   return cursor;
 }
+
 
 Cursor* leaf_node_find(Table* table, uint32_t page_num, uint32_t key) {
   void* node = get_page(table->pager, page_num);
