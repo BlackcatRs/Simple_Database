@@ -147,10 +147,16 @@ const uint32_t INTERNAL_NODE_CELL_SIZE =
 /*
  * Leaf Node Header Layout (size is 8 bytes)
  */
-const uint32_t LEAF_NODE_NUM_CELLS_SIZE = sizeof(uint32_t); // 3 bytes
+const uint32_t LEAF_NODE_NUM_CELLS_SIZE = sizeof(uint32_t); // 4 bytes
 const uint32_t LEAF_NODE_NUM_CELLS_OFFSET = COMMON_NODE_HEADER_SIZE; // 5 bytes
-const uint32_t LEAF_NODE_HEADER_SIZE =
-    COMMON_NODE_HEADER_SIZE + LEAF_NODE_NUM_CELLS_SIZE; // 8 bytes
+const uint32_t LEAF_NODE_NEXT_LEAF_SIZE = sizeof(uint32_t); // 4 bytes
+// 5 + 4 = 9 bytes
+const uint32_t LEAF_NODE_NEXT_LEAF_OFFSET =
+    LEAF_NODE_NUM_CELLS_OFFSET + LEAF_NODE_NUM_CELLS_SIZE;
+// 13 bytes
+const uint32_t LEAF_NODE_HEADER_SIZE = COMMON_NODE_HEADER_SIZE +
+                                       LEAF_NODE_NUM_CELLS_SIZE +
+                                       LEAF_NODE_NEXT_LEAF_SIZE;
 
 /*
  * Leaf Node Body Layout
@@ -222,6 +228,10 @@ uint32_t* internal_node_child(void* node, uint32_t child_num) {
 // pointer to the field "num_cells"
 uint32_t* leaf_node_num_cells(void* node) {
   return node + LEAF_NODE_NUM_CELLS_OFFSET;
+}
+
+uint32_t* leaf_node_next_leaf(void* node) {
+  return node + LEAF_NODE_NEXT_LEAF_OFFSET;
 }
 
 // pointer to specified (cell_num) cell (key + value)
@@ -371,21 +381,6 @@ void deserialize_row(void *source, Row* destination) {
 }
 
 
-
-// initialize the cursor and point at the begining
-Cursor* table_start(Table* table) {
-  Cursor* cursor = malloc(sizeof(Cursor));
-  cursor->table = table;
-  cursor->page_num = table->root_page_num;
-  cursor->cell_num = 0;
-
-  void* root_node = get_page(table->pager, table->root_page_num);
-  uint32_t num_cells = *leaf_node_num_cells(root_node);
-  cursor->end_of_table = (num_cells == 0);
-
-  return cursor;
-}
-
 Cursor* leaf_node_find(Table* table, uint32_t page_num, uint32_t key) {
   void* node = get_page(table->pager, page_num);
   uint32_t num_cells = *leaf_node_num_cells(node);
@@ -461,6 +456,16 @@ Cursor* table_find(Table* table, uint32_t key) {
   }
 }
 
+// initialize the cursor at given key position
+Cursor* table_start(Table* table) {
+  Cursor* cursor =  table_find(table, 0);
+
+  void* node = get_page(table->pager, cursor->page_num);
+  uint32_t num_cells = *leaf_node_num_cells(node);
+  cursor->end_of_table = (num_cells == 0);
+
+  return cursor;
+}
 
 void* cursor_value(Cursor* cursor) {
   uint32_t page_num = cursor->page_num; //root page num
@@ -716,6 +721,8 @@ void leaf_node_split_and_insert(Cursor* cursor, uint32_t key, Row* value) {
   uint32_t new_page_num = get_unused_page_num(cursor->table->pager);
   void* new_node = get_page(cursor->table->pager, new_page_num);
   initialize_leaf_node(new_node);
+  *leaf_node_next_leaf(new_node) = *leaf_node_next_leaf(old_node);
+  *leaf_node_next_leaf(old_node) = new_page_num;
 
   /*
   All existing keys plus new key should be divided
