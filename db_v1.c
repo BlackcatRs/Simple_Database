@@ -141,7 +141,8 @@ const uint32_t INTERNAL_NODE_CHILD_SIZE = sizeof(uint32_t);
 // 8 bytes
 const uint32_t INTERNAL_NODE_CELL_SIZE =
     INTERNAL_NODE_CHILD_SIZE + INTERNAL_NODE_KEY_SIZE;
-
+/* Keep this small for testing */
+const uint32_t INTERNAL_NODE_MAX_CELLS = 3;
 
 
 /*
@@ -242,7 +243,7 @@ void* leaf_node_cell(void* node, uint32_t cell_num) {
 }
 
 uint32_t* internal_node_key(void* node, uint32_t key_num) {
-  return internal_node_cell(node, key_num) + INTERNAL_NODE_CHILD_SIZE;
+  return (void*)internal_node_cell(node, key_num) + INTERNAL_NODE_CHILD_SIZE;
 }
 
 uint32_t* leaf_node_key(void* node, uint32_t cell_num) {
@@ -416,6 +417,35 @@ Cursor* leaf_node_find(Table* table, uint32_t page_num, uint32_t key) {
 Return the index of the child which should contain
 the given key.
 */
+
+// For an example
+// Binary search
+//         1 3 6 7 9
+//
+// searching for key 2 (not exist)
+// min = 0
+// max = 4
+//
+//
+// index = 0+4/2 = 2
+// value(2) = 6 >= 2
+// min = 0
+// max = 2
+//
+// index = 0+2/2 = 1
+// value(1) = 3 >= 2
+// min = 0
+// max = 1
+//
+// index = 0+1/2 = 0
+// value(0) = 1 < 2
+// min = 1
+// max = 1
+//
+//
+// if min == max stop
+// return min
+
 uint32_t internal_node_find_child(void* node, uint32_t key) {
   uint32_t num_keys = *internal_node_num_keys(node);
 
@@ -735,10 +765,13 @@ void internal_node_insert(Table* table, uint32_t parent_page_num,
   void* parent = get_page(table->pager, parent_page_num);
   void* child = get_page(table->pager, child_page_num);
   uint32_t child_max_key = get_node_max_key(child);
-  // index of a child (or index of parent node is max key of child node)
+  // index of a child (or index in parent node is highest key in child node)
   // that contain given key.
+  // child correspond to key "child_max_key" in parent node
+  // if not return where it should insert
   uint32_t index = internal_node_find_child(parent, child_max_key);
 
+  // total num of keys in a node
   uint32_t original_num_keys = *internal_node_num_keys(parent);
   *internal_node_num_keys(parent) = original_num_keys + 1;
 
@@ -747,18 +780,20 @@ void internal_node_insert(Table* table, uint32_t parent_page_num,
     exit(EXIT_FAILURE);
   }
 
-  // stop here
   uint32_t right_child_page_num = *internal_node_right_child(parent);
   void* right_child = get_page(table->pager, right_child_page_num);
 
   if (child_max_key > get_node_max_key(right_child)) {
-    /* Replace right child */
+    // Replace last child in parent node with right child in parent node
+    // (last child without key is right child and it is at beging of
+    // parent node)
     *internal_node_child(parent, original_num_keys) = right_child_page_num;
     *internal_node_key(parent, original_num_keys) =
         get_node_max_key(right_child);
     *internal_node_right_child(parent) = child_page_num;
   } else {
     /* Make room for the new cell */
+    // index indicate the position where key should insert
     for (uint32_t i = original_num_keys; i > index; i--) {
       void* destination = internal_node_cell(parent, i);
       void* source = internal_node_cell(parent, i - 1);
