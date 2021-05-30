@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-for value in range(1, 15):
+for value in range(1, 31):
     print("insert " + str(value) + " user" + str(value) + " user" + str(value) + "@codinglab.fr")
 
 
