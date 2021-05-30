@@ -2,25 +2,11 @@
 #include <unistd.h>
 #include <stdint.h>
 
-void recursion(int answer) {
-  switch (answer) {
-    case 0:
-      printf("case 0\n");
-      break;
-    case 1:
-      for (size_t i = 0; i < 4; i++) {
-        recursion(0);
-        printf("%ld\n", i);
-      }
-
-  }
+int main(int argc, char const *argv[]) {
+  uint32_t nb = 1/2;
+  printf("%d\n", nb);
+  return 0;
 }
-
-
-int main() {
-  recursion(1);
-}
-
 
 /*
 
@@ -50,6 +36,79 @@ m = 15
 k = 14
 
 1 2 3 4 5 6 7 8 9 10 11 12 13 14
+
+
+     1       2      3       R
+[   cp_2    cp_4   cp_6  newCp_8]
+
+    2       4       6
+1-2    3-4    5-6     7-
+
+newChildMaxKey = 1
+
+______________________________________________________________
+Binary search
+        1 3 6 7 9
+searching for 9's index
+min = 0
+max = 4
+
+
+
+index = 0+4/2 = 2
+value(2) = 6 < 9 donc
+
+min = index + 1 = 3
+max = 4
+
+
+
+index = 3+4/2 = 3
+value(3) = 7 < 9
+
+min = index + 1 = 4
+max = 4
+
+
+if min == max stop
+_____________________________________________________
+
+
+Binary search
+        1 3 6 7 9
+
+searching for key 2 (not exist)
+min = 0
+max = 4
+
+
+index = 0+4/2 = 2
+value(2) = 6 >= 2
+min = 0
+max = 2
+
+index = 0+2/2 = 1
+value(1) = 3 >= 2
+min = 0
+max = 1
+
+index = 0+1/2 = 0
+value(0) = 1 < 2
+min = 1
+max = 1
+
+
+if min == max stop
+return min
+______________________________________________________________________
+
+4       8       12       16       20
+
+need to insert key 6 in parent node, it should be at index 1
+i = 5
+index = 1
+
+
 
 
 
